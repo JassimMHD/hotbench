@@ -1,0 +1,34 @@
+name: Adapter request
+description: Ask for a model, format or backend to be supported
+labels: [adapter-request]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model, format or backend
+      placeholder: e.g. "RT-DETRv2 via transformers", "whisper.cpp", "GGUF via llama.cpp"
+    validations:
+      required: true
+  - type: dropdown
+    id: task
+    attributes:
+      label: Task
+      options: [detect, segment, pose, classify, count, ASR, TTS, VAD, chat (LLM), VLM, other]
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to the model or library, and its licence
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What do you want to measure or test with it?
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I'd like to write this adapter myself (see CONTRIBUTING.md → Writing an adapter)

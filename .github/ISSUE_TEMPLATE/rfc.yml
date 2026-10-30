@@ -1,0 +1,32 @@
+name: RFC (design proposal)
+description: A change to the adapter API, the CLI, the run-file format or the architecture
+labels: [rfc]
+body:
+  - type: markdown
+    attributes:
+      value: An RFC stays open for at least 7 days before a decision, so people who depend on the API can comment.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't be done today, and who needs it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The API or format change, with a code example.
+    validations:
+      required: true
+  - type: textarea
+    id: compat
+    attributes:
+      label: Compatibility and migration
+      description: What breaks for existing adapters, recipes or run files, and how do they move over?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

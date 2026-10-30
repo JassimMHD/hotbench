@@ -1,0 +1,31 @@
+name: Bug report
+description: Something doesn't work or the numbers look wrong
+labels: [bug, needs-repro]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: The command or recipe you ran
+      description: Remove passwords and API keys from URLs.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `hotbench doctor`
+      description: Versions, extras, hardware.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or traceback
+      render: text
