@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use Hotbench in your research, please cite it as below."
-title: "Hotbench: live-test any local model and measure what it costs"
+title: "Hotbench: live-test, convert and benchmark local AI models"
 type: software
 authors:
   - given-names: Mohamed
@@ -11,6 +11,9 @@ repository-code: "https://github.com/JassimMHD/hotbench"
 keywords:
   - real-time inference
   - benchmarking
+  - model conversion
+  - onnx
+  - quantization
   - computer vision
   - speech recognition
   - large language models
