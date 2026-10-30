@@ -1,24 +1,30 @@
 # Hotbench
 
-**Live-test any local model. Measure what it really costs.**
+**Live-test, convert and benchmark local AI models, and see what they really cost.**
 
-Hotbench puts a model on a live input (a webcam, an IP camera or a video file)
-and shows two things side by side in your browser: **what the model sees**
-(boxes, labels, a live count) and **what it costs on this machine** (CPU cores
-per stage, RAM, latency, inferences per second, frames it had to skip).
+Hotbench puts a model on a live input (a webcam, an IP camera or a video file;
+a mic and chat are next) and shows two things side by side in your browser:
+**what the model sees** (boxes, labels, a live count) and **what it costs on
+this machine** (CPU cores per stage, RAM, latency, inferences per second,
+frames it had to skip).
+
+Run the original model, then its ONNX or INT8 export, on the same input, and
+the numbers show whether the conversion was worth it. From v0.2, Hotbench does
+the conversion too: **convert → verify → measure** in one place.
 
 It is for researchers, students and engineers who have a model and need
 answers in minutes, not after writing a demo app:
 
 - Does it work on *live* input, not just on my test images?
 - How fast is it on *this* machine: a laptop, a 2-core server, an edge box?
-- What does one more camera cost? Which image size, thread count or export is
-  worth it?
+- Is the ONNX / OpenVINO / INT8 version as accurate as the original, and how
+  much faster is it?
+- What does one more camera cost? Which image size or thread count is worth it?
 
 > **Status: pre-alpha.** This is the prototype Hotbench grows from: live object
-> detection with Ultralytics models (`.pt` and `.onnx`). Speech models, chat
-> with local LLMs and a plugin system for any model are on the
-> [roadmap](#roadmap). Interfaces will change before 1.0.
+> detection with Ultralytics models (`.pt` and `.onnx`). One-command conversion
+> with verification, speech models, chat with local LLMs and a plugin system
+> for any model are on the [roadmap](#roadmap). Interfaces will change before 1.0.
 
 ---
 
@@ -27,6 +33,7 @@ answers in minutes, not after writing a demo app:
 - [What you get](#what-you-get)
 - [Quick start](#quick-start)
 - [Use your own model, camera or video](#use-your-own-model-camera-or-video)
+- [Convert a model to ONNX and compare](#convert-a-model-to-onnx-and-compare)
 - [Reading the page](#reading-the-page)
 - [Settings](#settings)
 - [Benchmark offline](#benchmark-offline)
@@ -132,6 +139,56 @@ what a 2-core server would do:
 CORES=0,1
 THREADS=2
 ```
+
+## Convert a model to ONNX and compare
+
+A converted model is often faster on CPU, but it can also give slightly
+different answers. Test both on the same input before you switch.
+
+**Today (by hand).** Export with Ultralytics, then run each version on the same
+video and compare the page's numbers:
+
+```bash
+# Windows: .venv\Scripts\yolo …   Linux/macOS: .venv/bin/yolo …
+yolo export model=weights/yolo26n.pt format=onnx imgsz=640 dynamic=True
+pip install onnxruntime
+```
+
+```ini
+SOURCE=clips/street.mp4
+WEIGHTS=weights/yolo26n.pt       # run 1: note inferences/s, cores, the median count
+WEIGHTS=weights/yolo26n.onnx     # run 2: the same clip; switch live under Settings → Model
+```
+
+`bench.py` does the same offline, on identical frames:
+`python bench.py --weights weights/yolo26n.onnx --source clips/street.mp4`.
+
+- Export with `dynamic=True`. A static export accepts only one input size, and
+  Hotbench then ignores `IMGSZ` (it tells you so).
+- Keep `THREADS` no higher than the cores you allow. ONNX Runtime slows down
+  sharply when its threads outnumber the cores.
+
+**From v0.2 (planned).** One command per step, with a pass/fail check:
+
+```bash
+hotbench convert yolo26n.pt --to onnx --dynamic
+hotbench verify  yolo26n.pt yolo26n.onnx --source clips/street.mp4
+#  boxes match 99.6% (IoU ≥ 0.5) · count differs on 0 of 300 frames
+#  ONNX 1.9× faster · 0.33 → 0.17 core-seconds per inference
+hotbench convert yolo26n.pt --to openvino --int8 --calib clips/street.mp4
+```
+
+| Model family | Converts to | Planned in |
+|---|---|---|
+| Ultralytics YOLO, timm, Hugging Face vision/text models | ONNX, OpenVINO, FP16, INT8 | v0.2 |
+| Whisper (speech-to-text) | CTranslate2 (faster-whisper), ONNX | v0.3 |
+| Hugging Face LLMs | GGUF (Q4 / Q8) for llama.cpp | v0.4 |
+| Your own PyTorch model (you supply its class), TensorRT engines | ONNX, TensorRT | v0.5 |
+
+Hotbench won't promise to convert *every* model. A `.pt` file that holds only
+weights needs the code that defines the model, and some custom operations have
+no ONNX equivalent. What it will always do is **check** a conversion: same
+frames in, outputs compared, speed measured.
 
 ## Reading the page
 
@@ -274,10 +331,10 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md).
 | Version | Scope |
 |---|---|
 | **v0.1** | `pip install hotbench`, a `hotbench` CLI, ONNX Runtime as the default backend, Ultralytics as an optional extra |
-| **v0.2** | any vision model through adapters (OpenVINO, Hugging Face, timm), plugins, GPU metrics, saved runs + comparisons |
-| **v0.3** | live speech: mic input, voice activity detection, speech-to-text, text-to-speech, real-time factor |
-| **v0.4** | live chat with local LLMs (llama.cpp, Ollama, OpenAI-compatible servers), time to first token, tokens/s; vision-language models on the camera |
-| **v0.5** | the voice loop (mic → speech-to-text → LLM → speech) with per-stage latency; two models side by side |
+| **v0.2** | any vision model through adapters (OpenVINO, Hugging Face, timm), plugins, GPU metrics, saved runs + comparisons; **`hotbench convert` + `hotbench verify`** (ONNX, OpenVINO, FP16, INT8) |
+| **v0.3** | live speech: mic input, voice activity detection, speech-to-text, text-to-speech, real-time factor; Whisper conversion |
+| **v0.4** | live chat with local LLMs (llama.cpp, Ollama, OpenAI-compatible servers), time to first token, tokens/s; vision-language models on the camera; LLM → GGUF conversion |
+| **v0.5** | the voice loop (mic → speech-to-text → LLM → speech) with per-stage latency; two models side by side (e.g. `.pt` vs its INT8 export); TensorRT; converting your own PyTorch models |
 | **1.0** | a stable adapter API and run format |
 
 Ideas and requests are welcome in [Discussions](https://github.com/JassimMHD/hotbench/discussions).
