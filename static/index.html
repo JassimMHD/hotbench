@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hotbench</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e8ee; --muted: #8b93a7;
+    --count: #8b7cf6; --median: #f5f5f7; --ms: #f59e0b; --decode: #38bdf8; --infer: #8b7cf6;
+    --display: #34d399; --other: #8b93a7; --bad: #f87171; --ok: #34d399;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  .pill { padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--muted); }
+  .pill.ok { color: var(--ok); } .pill.bad { color: var(--bad); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 16px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .video { background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .video img { display: block; width: 100%; height: auto; min-height: 200px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+           padding: 12px 14px; margin-bottom: 12px; }
+  .panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+              color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+  .big { display: flex; gap: 22px; align-items: baseline; }
+  .big b { font-size: 40px; font-variant-numeric: tabular-nums; font-weight: 650; }
+  .big span { color: var(--muted); display: block; font-size: 12px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .bars { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--line);
+          margin: 6px 0 8px; }
+  .bars div { height: 100%; }
+  .err { color: var(--bad); white-space: pre-wrap; word-break: break-word; margin-top: 6px; }
+  .charts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1000px) { .charts { grid-template-columns: 1fr; } }
+  canvas { width: 100%; height: 170px; display: block; }
+  .legend { display: flex; gap: 12px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px;
+              vertical-align: middle; margin-right: 4px; }
+  form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+  label.wide { grid-column: 1 / -1; }
+  input, select { background: var(--bg); color: var(--text); border: 1px solid var(--line);
+                  border-radius: 6px; padding: 5px 7px; font: inherit; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; grid-column: 1 / -1; }
+  button { background: var(--line); color: var(--text); border: 1px solid #333a48; border-radius: 6px;
+           padding: 6px 10px; font: inherit; cursor: pointer; }
+  button.primary { background: #5b4fd6; border-color: #6d61e6; }
+  button:active { transform: scale(0.96); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Hotbench</h1>
+  <span class="pill" id="stream-status">stream …</span>
+  <span class="pill" id="model-status">model …</span>
+  <span class="pill" id="rec" hidden>● REC</span>
+  <span id="source" style="color:var(--muted)"></span>
+</header>
+
+<main>
+  <section>
+    <div class="video"><img id="video" src="/video.mjpg" alt="live stream with detections"></div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>Count</h2>
+      <div class="big">
+        <div><b id="count">–</b><span>this frame</span></div>
+        <div><b id="smoothed">–</b><span id="smooth-label">median</span></div>
+      </div>
+      <dl style="margin-top:8px">
+        <dt>Spread (p10–p90)</dt><dd id="spread">–</dd>
+        <dt>Mean confidence</dt><dd id="confidence">–</dd>
+        <dt>Boxes age</dt><dd id="age">–</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <h2>Inference</h2>
+      <dl>
+        <dt>Model</dt><dd id="model">–</dd>
+        <dt>Inferences / s</dt><dd id="ifps">–</dd>
+        <dt>Time p50 / p95</dt><dd id="ims">–</dd>
+        <dt>pre / infer / post</dt><dd id="split">–</dd>
+        <dt>Frame → count</dt><dd id="latency">–</dd>
+        <dt>Frames skipped each</dt><dd id="skipped">–</dd>
+        <dt>Total</dt><dd id="total">–</dd>
+      </dl>
+      <div class="err" id="ierr"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Stream</h2>
+      <dl>
+        <dt>Resolution</dt><dd id="res">–</dd>
+        <dt>Camera fps / decoded</dt><dd id="sfps">–</dd>
+        <dt>Display fps</dt><dd id="dfps">–</dd>
+        <dt>Reconnects</dt><dd id="reconnects">–</dd>
+      </dl>
+      <div class="err" id="serr"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Cost</h2>
+      <div class="bars" id="bars"></div>
+      <div class="legend">
+        <span><i style="background:var(--decode)"></i>decode <b id="c-decode">–</b></span>
+        <span><i style="background:var(--infer)"></i>inference <b id="c-inference">–</b></span>
+        <span><i style="background:var(--display)"></i>display <b id="c-display">–</b></span>
+        <span><i style="background:var(--other)"></i>other <b id="c-other">–</b></span>
+      </div>
+      <dl style="margin-top:8px">
+        <dt>Process (cores)</dt><dd id="ctotal">–</dd>
+        <dt>Cores allowed</dt><dd id="callowed">–</dd>
+        <dt>RAM (RSS)</dt><dd id="rss">–</dd>
+        <dt>Whole PC CPU</dt><dd id="sys">–</dd>
+      </dl>
+      <div class="err" id="cerr"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Settings</h2>
+      <form id="settings">
+        <label class="wide">Source (RTSP URL, file, or camera index)
+          <input name="source" spellcheck="false"></label>
+        <label class="wide">Model (.pt or .onnx file, or an official name like weights/yolo26n.pt)
+          <input name="weights" spellcheck="false"></label>
+        <label class="wide">Classes to count (person, car · empty = all)
+          <input name="classes" spellcheck="false"></label>
+        <label>Image size
+          <select name="imgsz"><option>1280</option><option>960</option><option>768</option>
+            <option>640</option><option>480</option></select></label>
+        <label>Confidence <input name="conf" type="number" step="0.01" min="0.01" max="0.99"></label>
+        <label>Torch threads <input name="threads" type="number" min="1"></label>
+        <label>Cores (0,1 · 0-3 · empty = all) <input name="cores"></label>
+        <label>Max inferences/s (0 = max) <input name="infer_max_fps" type="number" step="0.1" min="0"></label>
+        <label>Display fps <input name="display_fps" type="number" step="1" min="1" max="30"></label>
+        <label>Display width <input name="display_width" type="number" step="10"></label>
+        <label>Median window (s) <input name="smooth_seconds" type="number" min="1"></label>
+        <label class="wide" style="flex-direction:row;align-items:center;gap:8px">
+          <input name="infer_enabled" type="checkbox"> Inference on (off = measure decode only)</label>
+        <div class="row">
+          <button class="primary" type="submit">Apply</button>
+          <button type="button" id="rec-btn">Start CSV</button>
+          <button type="button" id="save-btn">Save frame</button>
+        </div>
+      </form>
+      <div class="note" id="note"></div>
+    </div>
+  </aside>
+
+  <div class="charts">
+    <div class="panel">
+      <h2>Count, last 2 min</h2>
+      <canvas id="chart-count"></canvas>
+      <div class="legend"><span><i style="background:var(--count)"></i>this frame</span>
+        <span><i style="background:var(--median)"></i>median</span></div>
+    </div>
+    <div class="panel">
+      <h2>Cost, last 2 min</h2>
+      <canvas id="chart-cost"></canvas>
+      <div class="legend"><span><i style="background:var(--decode)"></i>decode cores</span>
+        <span><i style="background:var(--infer)"></i>inference cores</span>
+        <span><i style="background:var(--display)"></i>display cores</span>
+        <span><i style="background:var(--ms)"></i>inference ms (right axis)</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const fmt = (v, unit = "", d = 0) => v === null || v === undefined ? "–" : Number(v).toFixed(d) + unit;
+const HISTORY = 120;
+const history = [];
+let formLoaded = false;
+let recording = null;
+
+function pill(el, text, good) {
+  el.textContent = text;
+  el.className = "pill " + (good ? "ok" : "bad");
+}
+
+function update(s) {
+  const st = s.stream, inf = s.inference, d = s.display, c = s.cost;
+  pill($("stream-status"), "stream " + st.status, st.status === "live");
+  pill($("model-status"), "model " + inf.status, inf.status === "ready");
+  $("source").textContent = s.source;
+  recording = s.recording;
+  $("rec").hidden = !recording;
+  $("rec-btn").textContent = recording ? "Stop CSV" : "Start CSV";
+
+  $("count").textContent = fmt(inf.count);
+  $("smoothed").textContent = fmt(inf.smoothed);
+  $("smooth-label").textContent = `median ${s.config.smooth_seconds}s`;
+  $("spread").textContent = inf.spread_p10 === null ? "–" : `${inf.spread_p10} – ${inf.spread_p90}`;
+  $("confidence").textContent = fmt(inf.confidence, "", 3);
+  $("age").textContent = fmt(inf.box_age_s, " s", 2);
+
+  $("model").textContent = inf.model ? `${inf.model} @ ${inf.imgsz}` : "–";
+  $("ifps").textContent = fmt(inf.fps, "", 2);
+  $("ims").textContent = inf.ms_p50 === null ? "–" : `${inf.ms_p50} / ${inf.ms_p95} ms`;
+  $("split").textContent = inf.pre_ms === null ? "–"
+    : `${fmt(inf.pre_ms)} / ${fmt(inf.infer_ms)} / ${fmt(inf.post_ms)} ms`;
+  $("latency").textContent = fmt(inf.latency_ms_p50, " ms");
+  $("skipped").textContent = fmt(inf.skipped_per_inference);
+  $("total").textContent = inf.total;
+  $("ierr").textContent = inf.error || "";
+
+  $("res").textContent = st.width ? `${st.width}×${st.height}` : "–";
+  $("sfps").textContent = `${fmt(st.declared_fps, "", 1)} / ${fmt(st.decode_fps, "", 1)}`;
+  $("dfps").textContent = `${fmt(d.fps, "", 1)} (${d.ms ?? "–"} ms a frame)`;
+  $("reconnects").textContent = st.reconnects;
+  $("serr").textContent = st.error || "";
+
+  const stages = ["decode", "inference", "display", "other"];
+  const colors = { decode: css("--decode"), inference: css("--infer"), display: css("--display"), other: css("--other") };
+  const cap = Math.max(c.cores_allowed, 1);
+  $("bars").innerHTML = stages.map((k) =>
+    `<div title="${k}" style="width:${Math.min(100, c["cores_" + k] / cap * 100)}%;background:${colors[k]}"></div>`).join("");
+  for (const k of stages) $("c-" + k).textContent = fmt(c["cores_" + k], "", 2);
+  $("ctotal").textContent = `${fmt(c.cores_total, "", 2)} of ${c.cores_allowed}`;
+  $("callowed").textContent = `${s.config.cores || "all"} (${c.cores_allowed} of ${c.cpus})`;
+  $("rss").textContent = `${c.rss_mb} MB`;
+  $("sys").textContent = fmt(c.system_cpu_pct, " %");
+  $("cerr").textContent = c.oversubscribed ? "Torch threads > cores allowed: they fight over the cores." : "";
+
+  if (!formLoaded) fillForm(s.config);
+  history.push({ count: inf.count, smoothed: inf.smoothed, ms: inf.ms_p50,
+    decode: c.cores_decode, inference: c.cores_inference, display: c.cores_display });
+  if (history.length > HISTORY) history.shift();
+  drawCharts();
+}
+
+function fillForm(conf) {
+  const f = $("settings");
+  for (const [k, v] of Object.entries(conf)) {
+    const el = f.elements[k];
+    if (!el) continue;
+    if (el.type === "checkbox") el.checked = v; else el.value = v;
+  }
+  formLoaded = true;
+}
+
+function line(ctx, values, color, w, h, max, width = 1.5) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+  let started = false;
+  values.forEach((v, i) => {
+    if (v === null || v === undefined) { started = false; return; }
+    const x = (i / (HISTORY - 1)) * w, y = h - (v / max) * (h - 8) - 4;
+    started ? ctx.lineTo(x, y) : ctx.moveTo(x, y); started = true;
+  });
+  ctx.stroke();
+}
+
+function prep(canvas) {
+  const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, r.width, r.height);
+  return [ctx, r.width, r.height];
+}
+
+function axis(ctx, w, h, max, label, right = false) {
+  ctx.fillStyle = css("--muted"); ctx.font = "11px system-ui";
+  ctx.textAlign = right ? "right" : "left";
+  ctx.fillText(`${label(max)}`, right ? w - 2 : 2, 12);
+  ctx.strokeStyle = css("--line"); ctx.lineWidth = 1;
+  for (const f of [0.25, 0.5, 0.75]) {
+    ctx.beginPath(); ctx.moveTo(0, h * f); ctx.lineTo(w, h * f); ctx.stroke();
+  }
+}
+
+function drawCharts() {
+  {
+    const [ctx, w, h] = prep($("chart-count"));
+    const vals = history.flatMap((p) => [p.count, p.smoothed]).filter((v) => v !== null);
+    const max = Math.max(10, ...vals) * 1.1;
+    axis(ctx, w, h, max, (m) => Math.round(m) + " objects");
+    line(ctx, history.map((p) => p.count), css("--count"), w, h, max, 1.2);
+    line(ctx, history.map((p) => p.smoothed), css("--median"), w, h, max, 2);
+  }
+  {
+    const [ctx, w, h] = prep($("chart-cost"));
+    const cores = history.flatMap((p) => [p.decode, p.inference, p.display]);
+    const maxC = Math.max(1, ...cores) * 1.1;
+    const maxMs = Math.max(100, ...history.map((p) => p.ms ?? 0)) * 1.1;
+    axis(ctx, w, h, maxC, (m) => m.toFixed(1) + " cores");
+    ctx.fillStyle = css("--muted"); ctx.textAlign = "right"; ctx.fillText(Math.round(maxMs) + " ms", w - 2, 12);
+    line(ctx, history.map((p) => p.decode), css("--decode"), w, h, maxC);
+    line(ctx, history.map((p) => p.inference), css("--infer"), w, h, maxC);
+    line(ctx, history.map((p) => p.display), css("--display"), w, h, maxC);
+    line(ctx, history.map((p) => p.ms), css("--ms"), w, h, maxMs, 1);
+  }
+}
+
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+$("settings").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target, body = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    body[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  }
+  try {
+    const r = await post("/api/config", body);
+    $("note").textContent = r.changed.length ? "Changed: " + r.changed.join(", ") : "Nothing changed.";
+    fillForm(r.config);
+  } catch (err) { $("note").textContent = "Not applied: " + err.message; }
+});
+
+$("rec-btn").addEventListener("click", async () => {
+  const r = await post("/api/record", { on: !recording });
+  $("note").textContent = r.recording ? `Recording runs/${r.recording}` : "Recording stopped.";
+});
+
+$("save-btn").addEventListener("click", async () => {
+  try { $("note").textContent = "Saved " + (await post("/api/save-frame", {})).saved; }
+  catch (err) { $("note").textContent = err.message; }
+});
+
+// The MJPEG stream drops when the server restarts: reconnect.
+$("video").addEventListener("error", () => setTimeout(() => { $("video").src = "/video.mjpg?" + Date.now(); }, 2000));
+
+const events = new EventSource("/stats");
+events.onmessage = (e) => update(JSON.parse(e.data));
+events.onerror = () => { pill($("stream-status"), "server offline", false); };
+addEventListener("resize", drawCharts);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Hotbench prototype. Python 3.10+.
+#
+# CPU-only torch first (much smaller than the default CUDA build):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# then:
+#   pip install -r requirements.txt
+#
+# Ultralytics is licensed AGPL-3.0 (Hotbench itself is Apache-2.0). From v0.1 it
+# becomes an optional extra, with ONNX Runtime as the default backend.
+ultralytics==8.4.126
+fastapi>=0.115,<0.116
+uvicorn>=0.30
+psutil>=6.0
