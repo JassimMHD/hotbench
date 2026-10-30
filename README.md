@@ -1,6 +1,19 @@
+<p align="center">
+  <img src="docs/assets/hotbench-banner.webp" width="100%"
+       alt="Hotbench: run it, convert it, benchmark it. Local AI models, real performance.">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-blue"></a>
+  <img alt="Status: pre-alpha" src="https://img.shields.io/badge/status-pre--alpha-orange">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue">
+  <a href="https://github.com/JassimMHD/hotbench/discussions"><img alt="Discussions" src="https://img.shields.io/badge/discussions-welcome-8b5cf6"></a>
+</p>
+
 # Hotbench
 
-**Live-test, convert and benchmark local AI models, and see what they really cost.**
+**Run it. Convert it. Benchmark it.** Live-test, convert and benchmark local AI
+models, and see what they really cost. Real performance, no guesswork.
 
 Hotbench puts a model on a live input (a webcam, an IP camera or a video file;
 a mic and chat are next) and shows two things side by side in your browser:
