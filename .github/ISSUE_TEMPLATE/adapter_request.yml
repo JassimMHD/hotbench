@@ -1,5 +1,5 @@
-name: Adapter request
-description: Ask for a model, format or backend to be supported
+name: Adapter or converter request
+description: Ask for a model, format or backend to be supported, or a conversion (e.g. to ONNX)
 labels: [adapter-request]
 body:
   - type: input
@@ -9,6 +9,21 @@ body:
       placeholder: e.g. "RT-DETRv2 via transformers", "whisper.cpp", "GGUF via llama.cpp"
     validations:
       required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What do you need?
+      options:
+        - Run this model (adapter)
+        - Convert this model to another format (converter)
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target format, if converting
+      placeholder: e.g. ONNX, OpenVINO, TensorRT, GGUF, CoreML, INT8
   - type: dropdown
     id: task
     attributes:
@@ -31,4 +46,4 @@ body:
     attributes:
       label: Can you help?
       options:
-        - label: I'd like to write this adapter myself (see CONTRIBUTING.md → Writing an adapter)
+        - label: I'd like to write this adapter or converter myself (see CONTRIBUTING.md)
