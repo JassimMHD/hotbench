@@ -1,8 +1,8 @@
 # Contributing to Hotbench
 
-Thanks for helping. Hotbench is a live test bench for local models, and most
-of its value comes from the adapters, recipes and benchmark results that
-people add. This page tells you how to get a change merged quickly.
+Thanks for helping. Hotbench is a live test bench for local models: run them,
+convert them, and measure what they cost. Most of its value comes from the
+adapters, converters, recipes and benchmark results that people add. This page tells you how to get a change merged quickly.
 
 By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -13,6 +13,7 @@ By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 | 5 minutes | try the quick start and open an issue for anything that was unclear |
 | a model that doesn't work | open a **Bug report** with `hotbench doctor` output |
 | a model you want supported | open an **Adapter request**, or write the adapter (below) |
+| a model family you know how to export (ONNX, OpenVINO, GGUF, …) | open an **Adapter or converter request** (choose *converter*), or write the converter |
 | numbers from your machine | `hotbench bench --share` and send the run file to `benchmarks/` |
 | an idea that changes the API, CLI or run-file format | open an **RFC** issue first; don't start with a PR |
 
