@@ -1,0 +1,7 @@
+.venv/
+.env
+.ultralytics/
+__pycache__/
+clips/
+runs/
+weights/*

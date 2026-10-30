@@ -1,0 +1,8 @@
+Hotbench
+Copyright 2026 Mohamed Jassim
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Optional extras install third-party packages under their own licences. In
+particular, `hotbench[ultralytics]` installs Ultralytics, which is licensed
+under AGPL-3.0. It is not part of the default install or of `hotbench[all]`.
