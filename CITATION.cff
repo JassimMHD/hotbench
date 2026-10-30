@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use Hotbench in your research, please cite it as below."
+title: "Hotbench: live-test any local model and measure what it costs"
+type: software
+authors:
+  - given-names: Mohamed
+    family-names: Jassim
+    email: jassimjr10you@gmail.com
+license: Apache-2.0
+repository-code: "https://github.com/JassimMHD/hotbench"
+keywords:
+  - real-time inference
+  - benchmarking
+  - computer vision
+  - speech recognition
+  - large language models
+  - local models
