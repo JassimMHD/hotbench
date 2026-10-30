@@ -18,6 +18,8 @@ the adapter API; such changes are listed under **Changed** with a migration note
   class labels on the boxes.
 - Live settings (source, model, classes, image size, threads, CPU cores, rate),
   CSV recording, "Save frame" for checking a count by hand.
+- A README guide to exporting a model to ONNX and comparing it with the original
+  on the same input.
 - `bench.py` (image size × threads on the same frames) and `record.py` (save a
   stream to a clip).
 - The official `yolo26n.pt` (COCO) is downloaded on first run, so a fresh clone
